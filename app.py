@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException
 import requests
 import os
 from pydantic import BaseModel
-import re  # Import regex module
+import re
 
 app = FastAPI()
 
@@ -27,7 +27,7 @@ def generate_tasks(data: RequestData):
 
     payload = {
         "model": "mistralai/Mistral-7B-Instruct-v0.1",
-        "prompt": f"Convert this request into a simple checklist (without markdown symbols): {data.user_input}",
+        "prompt": f"Convert this request into a clear bullet-point checklist. Do not use markdown formatting: {data.user_input}",
         "max_tokens": 100
     }
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
@@ -37,10 +37,11 @@ def generate_tasks(data: RequestData):
         raise HTTPException(status_code=500, detail="Mistral API error")
 
     result = response.json()
-    raw_text = result.get("choices", [{}])[0].get("text", "No response").strip()
+    raw_text = result.get("choices", [{}])[0].get("text", "").strip()
 
-    # 🛠 Remove markdown symbols & extra spaces
-    cleaned_text = re.sub(r"[*#]", "", raw_text)  # Remove **, ##, *
-    checklist = [line.strip() for line in cleaned_text.split("\n") if line.strip()]
+    # 🛠 Clean up and split properly
+    raw_text = raw_text.lstrip(". ")  # Remove unwanted dots and spaces at the start
+    checklist = re.split(r"\s*[\n\-•]\s*", raw_text)  # Split by newline, hyphen (-), or bullet (•)
+    checklist = [item.strip() for item in checklist if item.strip()]  # Remove empty items
 
     return {"tasks": checklist}
