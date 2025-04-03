@@ -27,7 +27,7 @@ def generate_tasks(data: RequestData):
 
     payload = {
         "model": "mistralai/Mistral-7B-Instruct-v0.1",
-        "prompt": f"Convert this request into a clear bullet-point checklist. Do not use markdown formatting: {data.user_input}",
+        "prompt": f"Convert this request into a plain text checklist. Each item should be on a new line, without any symbols like '*', '-', or '•'. Example:\nRoom cleaning\nFresh towels\nEnsure the response is only a checklist with no extra text.\n\nUser request: {data.user_input}",
         "max_tokens": 100
     }
     headers = {"Authorization": f"Bearer {API_KEY}", "Content-Type": "application/json"}
@@ -39,9 +39,8 @@ def generate_tasks(data: RequestData):
     result = response.json()
     raw_text = result.get("choices", [{}])[0].get("text", "").strip()
 
-    # 🛠 Clean up and split properly
-    raw_text = raw_text.lstrip(". ")  # Remove unwanted dots and spaces at the start
-    checklist = re.split(r"\s*[\n\-•]\s*", raw_text)  # Split by newline, hyphen (-), or bullet (•)
-    checklist = [item.strip() for item in checklist if item.strip()]  # Remove empty items
+    # 🛠 Remove unwanted symbols, extra spaces, and split properly
+    raw_text = re.sub(r"[*•\-]", "", raw_text)  # Remove *, •, and -
+    checklist = [item.strip() for item in raw_text.split("\n") if item.strip()]  # Split and remove empty lines
 
     return {"tasks": checklist}
